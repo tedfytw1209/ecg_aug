@@ -64,7 +64,7 @@ class _Operation(nn.Module):
         mag_rel = mag_rel.view(BS, 1, 1)
         transformed = self.operation(input, mag_rel)
         mask = mask.view(BS, 1, 1)
-        retval = (mask * transformed + (1 - mask) * input)
+        retval = (mask * transformed + (1 - mask) * input) #mix origin input with mask
         return retval
 
     def get_mask(self, label,
