@@ -156,11 +156,11 @@ def get_loss(enc, x_batch_ecg, y_batch):
 
 def hyper_step(model, aug, hyper_params, train_loader, optimizer, val_loader, elementary_lr, neum_steps):
     zero_hypergrad(hyper_params)
-    num_weights = sum(p.numel() for p in model.parameters())
+    num_weights = sum(p.numel() for p in model.parameters()) #tensors element total
 
     d_train_loss_d_w = torch.zeros(num_weights).to(device)
     model.train(), model.zero_grad()
-
+    #get augment sample grad
     for batch_idx, (x, y) in enumerate(train_loader):
         x = x.to(device)
         y = y.to(device)
@@ -177,6 +177,7 @@ def hyper_step(model, aug, hyper_params, train_loader, optimizer, val_loader, el
     # Compute gradients of the validation loss w.r.t. the weights/hypers
     d_val_loss_d_theta = torch.zeros(num_weights).cuda()
     model.train(), model.zero_grad()
+    #get valid sample grad
     for batch_idx, (x, y) in enumerate(val_loader):
         x = x.to(device)
         y = y.to(device)
@@ -310,20 +311,20 @@ def train(train_dl, val_dl, test_dl):
     for epoch in range(load_ep,args.epochs):
         for i, (xecg, y) in enumerate(train_dl):
             enc.train()
-            zero_hypergrad(hyp_params)
+            zero_hypergrad(hyp_params) #clear aug params grad
             xecg = xecg.to(device)
             y = y.to(device)
             xecg = do_aug(xecg, y, aug)            
-            loss = get_loss(enc, xecg, y)
+            loss = get_loss(enc, xecg, y) #get bs mean loss
             optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            optimizer.step() #update model
 
             if epoch >= args.warmup_epochs and steps % args.num_base_steps == 0 and len(hyp_params) > 0:
                 for param_group in optimizer.param_groups:
                     cur_lr = param_group['lr']
                     break
-
+                #!!! important part !!!
                 hypg = hyper_step(enc, aug, hyp_params, train_dl, optimizer, val_dl, cur_lr, num_neumann_steps)
                 hypg = hypg.norm().item()
                 hyp_optim.step()
